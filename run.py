@@ -21,13 +21,13 @@ torch.backends.cudnn.enabled = True # make sure to use cudnn for computational p
 ##########################################################
 
 arguments_strModel = 'bsds500' # only 'bsds500' for now
-arguments_strIn = './images/sample.png'
-arguments_strOut = './out.png'
+#arguments_strIn = './images/sample.png'
+#arguments_strOut = './out.png'
 
-for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
-	if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use
-	if strOption == '--in' and strArgument != '': arguments_strIn = strArgument # path to the input image
-	if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
+#for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
+#	if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use
+#	if strOption == '--in' and strArgument != '': arguments_strIn = strArgument # path to the input image
+#	if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
 # end
 
 ##########################################################
@@ -138,18 +138,33 @@ def estimate(tenInput):
 	intWidth = tenInput.shape[2]
 	intHeight = tenInput.shape[1]
 
-	assert(intWidth == 480) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-	assert(intHeight == 320) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+#	assert(intWidth == 480) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+#	assert(intHeight == 320) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
 
 	return netNetwork(tenInput.cuda().view(1, 3, intHeight, intWidth))[0, :, :, :].cpu()
 # end
 
 ##########################################################
 
+def tohed(arguments_strIn,arguments_strOut):
+        tenInput = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strIn).convert('RGB'))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+
+        tenOutput = estimate(tenInput)
+
+        PIL.Image.fromarray((tenOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, 0] * 255.0).astype(numpy.uint8)).convert('RGB').save(arguments_strOut)
+
 if __name__ == '__main__':
-	tenInput = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strIn))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+        Inputdir = "./All-Paintings/"
+        Outputdir ="./edge/"
+        for curDir, dirs, files in os.walk(Inputdir):
+            for img in files:
+                if img.endswith("jpg"):
+                    imgpath = os.path.join(curDir, img)
+                    outpath = os.path.join(Outputdir,os.path.relpath(imgpath,Inputdir))
+                    if not os.path.exists(os.path.dirname(outpath)):
+                        os.makedirs(os.path.dirname(outpath))
+                    tohed(imgpath,outpath)
 
-	tenOutput = estimate(tenInput)
-
-	PIL.Image.fromarray((tenOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, 0] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+                else:
+                    pass
 # end
